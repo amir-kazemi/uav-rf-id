@@ -1,4 +1,4 @@
-## One-shot Generative Data Augmentation with Bounded Divergence for UAV Identification in Limited RF Environments
+## One-shot Generative Distribution Matching for Augmented RF-based UAV Identification
 
 ### Dataset
 
