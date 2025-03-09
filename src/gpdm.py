@@ -1,5 +1,7 @@
-# Based on the work "Generating natural images with direct Patch Distributions Matching" by Ariel Elnekave and Yair Weiss (https://github.com/ariel415el/GPDM)
-# 
+"""
+Based on the work "Generating natural images with direct Patch Distributions Matching" by Ariel Elnekave and Yair Weiss, from:
+https://github.com/ariel415el/GPDM
+"""
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at

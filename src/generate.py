@@ -13,7 +13,9 @@ from .cgan import CGAN
 
 set_seeds(seed_value=0)
 #### vicinal packages
-from .gpdm import PatchSWDLoss, ImageGenerator, ImageProcessor
+#from .gpdm import PatchSWDLoss, ImageGenerator, ImageProcessor
+from . import gpdm, gpnn
+
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -65,10 +67,11 @@ class Conditional(nn.Module):
         return torch.cat(generated_samples, dim=0).numpy(), np.array(generated_labels)
     
 class Vicinal(GenerativeModel):
-    def __init__(self, patch_dim, min_height):
+    def __init__(self, patch_dim, min_height, algorithm):
         super(Vicinal, self).__init__()
         self.patch_dim = patch_dim
         self.min_height = min_height
+        self.algorithm = algorithm
     
     def generate(self, X, Y, num_samples):
         pbar = tqdm(total=num_samples, desc="Generating synthetic samples")
@@ -94,6 +97,7 @@ class Vicinal(GenerativeModel):
                 sample = samples_with_label[next(circular_iterator)]
                 # Generate a vicinal synthetic sample and add it to the list
                 synthetic_sample = self.generate_vicinal_sample(sample)
+                
 
                 synthetic_samples.append(synthetic_sample)
                 synthetic_labels.append(label)
@@ -140,22 +144,38 @@ class Vicinal(GenerativeModel):
         x_tensor = torch.from_numpy(x_normalized).float().unsqueeze(0).unsqueeze(0)
         n_images = 1
         reference_images = x_tensor.repeat(n_images, 1, 1, 1)
-
+        if self.algorithm == 'gpdm':
+            criteria = gpdm.PatchSWDLoss(patch_size=self.patch_dim, stride=1, num_proj=256)
+            pyramid_scales = gpdm.ImageProcessor.get_pyramid_scales(reference_images.shape[-2], self.min_height, .85)
+            generator = gpdm.ImageGenerator()
+            new_images = generator.generate(reference_images=reference_images,
+                                  criteria=criteria,
+                                  pyramid_scales=pyramid_scales,
+                                  aspect_ratio=(1, 1),
+                                  init_from="target",
+                                  additive_noise_sigma=0,
+                                  lr=0.01,
+                                  num_steps=500,
+                                  debug_dir=None)
+            
+        elif self.algorithm == 'gpnn':
+            nn_module = gpnn.get_nn_module('Exact', None, True)
+            pyramid_scales = gpnn.get_pyramid_scales(reference_images.shape[-2], self.min_height, 0.85)
+            generator = gpnn.ImageGenerator()
+            new_images = generator.generate(reference_images,
+                                    nn_module,
+                                    patch_size=self.patch_dim,
+                                    pyramid_scales=pyramid_scales,
+                                    aspect_ratio=(1., 1.),
+                                    init_from='target',
+                                    num_iters=10,
+                                    initial_level_num_iters=1,
+                                    keys_blur_factor=1,
+                                    additive_noise_sigma=0,
+            )
+            
+            
         
-        criteria = PatchSWDLoss(patch_size=self.patch_dim, stride=1, num_proj=256)
-        pyramid_scales = ImageProcessor.get_pyramid_scales(reference_images.shape[-2], self.min_height, .85)
-        #print(pyramid_scales)
-        generator = ImageGenerator()
-
-        new_images = generator.generate(reference_images=reference_images,
-                              criteria=criteria,
-                              pyramid_scales=pyramid_scales,
-                              aspect_ratio=(1, 1),
-                              init_from="target",
-                              additive_noise_sigma=0,
-                              lr=0.01,
-                              num_steps=500,
-                              debug_dir=None)
         new_images_np = new_images.detach().cpu().numpy()
         new_images_denorm = normalizer.denormalize(new_images_np)
         new_images_denorm = new_images_denorm.reshape(45*45,)

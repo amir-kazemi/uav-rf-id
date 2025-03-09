@@ -1,0 +1,27 @@
+name: uav-rf-id
+channels:
+  - defaults
+  - conda-forge
+  - anaconda
+  - pytorch
+  - nvidia
+dependencies:
+  - python==3.9.18
+  - pip
+  - numpy==1.23.5
+  - tqdm==4.65.0
+  - matplotlib==3.8.3
+  - pillow==10.2.0
+  - scikit-image==0.19.3
+  - ipykernel
+  - jupyter
+  - faiss-gpu=1.9.0
+  - xgboost=1.5.1
+  - imbalanced-learn=0.12.0
+  - scikit-learn=1.0.2
+  - tensorflow
+  - opencv
+  - pandas
+  - pip:
+      - torch==2.0.1
+      - torchvision==0.15.2
